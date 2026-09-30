@@ -1,0 +1,51 @@
+The target architecture is set to "riscv:rv64".
+0x0000000000001000 in ?? ()
+
+=== [1] CPU上电复位点 ===
+pc             0x1000	0x1000
+=> 0x1000:	auipc	t0,0x0
+   0x1004:	addi	a2,t0,40
+   0x1008:	csrr	a0,mhartid
+   0x100c:	ld	a1,32(t0)
+   0x1010:	ld	t0,24(t0)
+   0x1014:	jr	t0
+=== [2] 跳板ROM数据: 0x1018处存放跳转目标, 0x1020处存放DTB地址 ===
+0x1018:	0x0000000080000000	0x0000000087e00000
+Breakpoint 1 at 0x80000000
+
+Breakpoint 1, 0x0000000080000000 in ?? ()
+
+=== [3] 到达OpenSBI入口 0x80000000 ===
+pc             0x80000000	0x80000000
+a0             0x0	0
+a1             0x87e00000	2279604224
+Breakpoint 2 at 0x80200000: file kern/init/entry.S, line 7.
+
+Breakpoint 2, kern_entry () at kern/init/entry.S:7
+7	    la sp, bootstacktop
+
+=== [4] 到达内核入口 0x80200000 (kern_entry) ===
+pc             0x80200000	0x80200000 <kern_entry>
+sp             0x80046eb0	0x80046eb0
+ra             0x8000ae9a	0x8000ae9a
+=> 0x80200000 <kern_entry>:	auipc	sp,0x3
+   0x80200004 <kern_entry+4>:	mv	sp,sp
+   0x80200008 <kern_entry+8>:	j	0x8020000a <kern_init>
+0x0000000080200004 in kern_entry () at kern/init/entry.S:7
+7	    la sp, bootstacktop
+
+=== [5] la sp, bootstacktop 执行完毕 ===
+sp             0x80203000	0x80203000 <SBI_CONSOLE_PUTCHAR>
+pc             0x80200004	0x80200004 <kern_entry+4>
+=== 查看栈顶内存(尚为空栈) ===
+0x80203000 <SBI_CONSOLE_PUTCHAR>:	0x0000000000000001	0x0000000000000000
+0x80203010:	0x0000000000000000	0x0000000000000000
+9	    tail kern_init
+
+=== [6] tail kern_init 执行完毕, 已进入C函数 ===
+pc             0x80200008	0x80200008 <kern_entry+8>
+ra             0x8000ae9a	0x8000ae9a
+=> 0x80200008 <kern_entry+8>:	j	0x8020000a <kern_init>
+   0x8020000a <kern_init>:	auipc	a0,0x3
+   0x8020000e <kern_init+4>:	addi	a0,a0,-2
+[Inferior 1 (process 1) detached]
