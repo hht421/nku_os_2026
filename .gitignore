@@ -6,3 +6,6 @@ code/lab1/bin/
 guidebook/
 # 本地离线指导书启动脚本
 *.bat
+
+# 个人学习笔记(答辩准备材料,本地保留)
+lab1_notes/
