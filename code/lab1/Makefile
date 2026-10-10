@@ -158,7 +158,11 @@ TARGETS: $(TARGETS)
 
 .PHONY: qemu
 qemu: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
-	$(V)$(QEMU) -kernel $(UCOREIMG) -nographic
+	$(V)$(QEMU) \
+		-machine virt \
+		-nographic \
+		-bios default \
+		-kernel $(UCOREIMG)
 
 debug: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 	$(V)$(QEMU) \
