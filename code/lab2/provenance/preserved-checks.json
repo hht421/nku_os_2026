@@ -1,0 +1,4 @@
+{
+  "basic_and_best_fit_checks_sha256": "2d60ebe300822c9294105a6f3254e210e446dbddc2a773e531b48d6775640da5",
+  "policy": "Existing basic_check and best_fit_check are preserved byte-for-byte from the local baseline."
+}

@@ -1,0 +1,12 @@
+{
+  "qemu": "4.1.1",
+  "opensbi": "0.4",
+  "source_archive": "https://download.qemu.org/qemu-4.1.1.tar.xz",
+  "source_archive_sha256": "ed6fdbbdd272611446ff8036991e9b9f04a2ab2e3ffa9e79f3bab0eb9a95a1d2",
+  "modified_third_party_sources": false,
+  "build_override": "FW_JUMP_FDT_ADDR=0x81f00000",
+  "old_fdt_address": "0x82200000",
+  "minimum_matrix_ram_bytes": 33554432,
+  "kernel_entry": "0x80200000",
+  "binary_sha256": "2737e0faff241cec624f24c806f72e124e7653b8c55a76a8f3321f91010e97f8"
+}
