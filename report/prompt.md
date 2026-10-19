@@ -1,11 +1,5 @@
 # Lab 2 提示词文档：四段式 Spec 与 Prompt
 
-本文依据新版指导书 Lab 0.5 的[提示词结构](http://oslab.mobisys.top/lab2026/_book/lab0.5/3_prompt_structure.html)整理。对应本地镜像为 `lab/lab2026-html-new/lab2026/_book/lab0.5/3_prompt_structure.html`（2026-10-14 镜像，2026-10-19 核对）。
-
-每条提示词统一使用 `[PROMPT]`、`[RELY]`、`[GUARANTEE]`、`[SPECIFICATION]`：分别说明任务与修改范围、最小可信上下文、必须交付的接口、各接口的行为规格。行为规格包含 Pre-Condition 和 Post-Condition，仅在确有分支或额外约束时加入 Case、Requirements。引用的宏、字段和接口已与当前工程核对；代码摘录去除注释时保留类型与签名。
-
-这些内容是按实验要求改写的可复用提示词，不作为历史对话逐字记录；提示词中的操作要求属于所描述的实验任务，不表示本文改写时重新执行了该任务。Buddy 与选做 SLUB 各保留独立的实现、测试提示词。真实测试结果见 [report.md](report.md)。各任务中的源文件路径相对 `code/lab2/`，带 `report/` 的路径相对仓库根目录，特别注明的 `docker/` 路径相对课程工作区。
-
 ## 0. First-Fit 思考题：理解与改进
 
 [PROMPT]
