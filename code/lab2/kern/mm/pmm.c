@@ -42,7 +42,7 @@ static void init_pmm_manager(void) {
 #elif PMM_KIND == 2
     pmm_manager = &buddy_pmm_manager;
 #else
-    /* lab2 function2 2413460: use Best-Fit in the default kernel and its checks. */
+    /* lab2 function2 2413421: use Best-Fit in the default kernel and its checks. */
     pmm_manager = &best_fit_pmm_manager;
 #endif
     cprintf("memory management: %s\n", pmm_manager->name);
@@ -90,7 +90,7 @@ size_t nr_free_pages(void) {
     return ret;
 }
 
-/* lab2 function1 2413460: derive the layout from DTB, not a fixed RAM size. */
+/* lab2 function1 2413421: derive the layout from DTB, not a fixed RAM size. */
 static void page_init(void) {
     va_pa_offset = PHYSICAL_MEMORY_OFFSET;
     uintptr_t base = get_memory_base(), size = get_memory_size();

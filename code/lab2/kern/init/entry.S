@@ -3,7 +3,7 @@
 .section .text,"ax",%progbits
 .globl kern_entry
 kern_entry:
-    # lab2 function1 2413460: keep a0 (hart ID) and a1 (DTB PA) intact.
+    # lab2 function1 2413421: keep a0 (hart ID) and a1 (DTB PA) intact.
     .option push
     .option norelax
     la t0, boot_page_table_sv39

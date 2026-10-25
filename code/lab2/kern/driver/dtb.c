@@ -26,7 +26,7 @@ static uintptr_t cells(const unsigned char *p, unsigned n) {
     return value;
 }
 
-/* lab2 function1 2413460: bounded FDT parsing; no heap or fixed RAM size. */
+/* lab2 function1 2413421: bounded FDT parsing; no heap or fixed RAM size. */
 int dtb_parse_memory(const void *blob, size_t limit, uintptr_t *base, uintptr_t *size) {
     if (!blob || !base || !size || limit < 40) return -1;
     const unsigned char *b = blob;

@@ -4,7 +4,7 @@
 #include <best_fit_pmm.h>
 #include <stdio.h>
 
-/* lab2 function2 2413460: address-ordered free blocks and a full Best-Fit scan. */
+/* lab2 function2 2413421: address-ordered free blocks and a full Best-Fit scan. */
 static free_area_t best_fit_area;
 #define free_list (best_fit_area.free_list)
 #define nr_free (best_fit_area.nr_free)

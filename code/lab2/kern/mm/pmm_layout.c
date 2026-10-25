@@ -1,7 +1,7 @@
 #include <pmm_layout.h>
 #define PAGE_SIZE 4096UL
 #define MAX_VALUE (~(uintptr_t)0)
-/* lab2 function1 2413460: checked arithmetic, half-open ranges and page alignment. */
+/* lab2 function1 2413421: checked arithmetic, half-open ranges and page alignment. */
 int pmm_compute_layout(uintptr_t base, uintptr_t size, uintptr_t kernel_end,
                        uintptr_t limit, size_t descriptor_size, struct pmm_layout *out) {
     if (!out || !size || !descriptor_size || base % PAGE_SIZE || size > MAX_VALUE - base) return -1;

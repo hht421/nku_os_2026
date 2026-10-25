@@ -188,7 +188,7 @@ free_pages = (maxpa - free_begin) / PGSIZE
 
 **任务**：在 `kern/driver/dtb.c` 实现内存信息解析，在 `kern/mm/pmm_layout.c` 实现安全布局计算，在 `kern/mm/pmm.c` 实现 `page_init()`；必要时只调整对应头文件、`kern/init/entry.S` 和 `kern/init/init.c` 的参数交接。
 
-**操作要求**：必须修改项目实际文件并保持公开接口和现有启动逻辑；在 `lab2` 标记处使用学号 `2413460`，不改原始分配器检查。允许新增模块私有 static 辅助函数；纯布局函数是已公开的可测试接口，不把它改为 static。
+**操作要求**：必须修改项目实际文件并保持公开接口和现有启动逻辑；在 `lab2` 标记处使用学号 `2413421`，不改原始分配器检查。允许新增模块私有 static 辅助函数；纯布局函数是已公开的可测试接口，不把它改为 static。
 
 **输出要求**：依据下列真实声明和行为规格补全模块，说明修改文件与验证方法；不引入堆、进程或多 bank 管理等无关功能。
 
@@ -488,7 +488,7 @@ Best-Fit 使用模块私有 `best_fit_area`，避免与 First-Fit 的全局状�
 
 例如空闲块依次为 12、5、9 页，申请 4 页时，First-Fit 使用 12 页块，Best-Fit 使用 5 页块。默认 `init_pmm_manager()` 接入 `best_fit_pmm_manager`，内核运行时实际使用 Best-Fit。
 
-原始 `basic_check()` 和 `best_fit_check()` 按本地基线逐字保留，并由完整性比较及实际执行验证。新增任务标记保留 `lab2` 并使用学号 `2413460`，源码检查未发现待填写的 `YOUR CODE`。
+原始 `basic_check()` 和 `best_fit_check()` 按本地基线逐字保留，并由完整性比较及实际执行验证。新增任务标记保留 `lab2` 并使用学号 `2413421`，源码检查未发现待填写的 `YOUR CODE`。
 
 线性 Best-Fit 的分配查找为 O(k)，地址有序释放插入也为 O(k)，k 为空闲块数。可增加按大小组织的树或分桶，同时保留地址索引支持合并；代价是两个索引的一致性维护。Best-Fit 仍有外部碎片，也可能留下大量过小余块，并不保证在所有负载下优于 First-Fit。
 
@@ -503,7 +503,7 @@ Best-Fit 使用模块私有 `best_fit_area`，避免与 First-Fit 的全局状�
 
 **任务**：补全 `kern/mm/best_fit_pmm.c` 的管理函数与注册对象，并在 `kern/mm/pmm.c` 的 `init_pmm_manager()` 中将默认管理器接为 Best-Fit；对应声明位于 `best_fit_pmm.h`。
 
-**操作要求**：必须修改实际文件，保留原始 basic_check、best_fit_check 的全部文本与断言；不重写 First-Fit。新实现保留 lab2/2413460 标记，模块状态私有，允许新增 static 合并辅助函数。
+**操作要求**：必须修改实际文件，保留原始 basic_check、best_fit_check 的全部文本与断言；不重写 First-Fit。新实现保留 lab2/2413421 标记，模块状态私有，允许新增 static 合并辅助函数。
 
 **输出要求**：按照下列接口和规格实现模块，给出默认接入点、选择策略与改进空间；使用既有检查和独立选择反例验证。
 

@@ -1,0 +1,7 @@
+# 构建产物（ucore 各实验的 make 输出目录）
+obj/
+bin/
+
+# QEMU 源码调试的本地构建
+qemu-source/
+qemu-build/
