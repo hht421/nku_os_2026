@@ -18,7 +18,7 @@ static void push(struct Page *p, unsigned o) {
     p->property=(size_t)1 << o; SetPageProperty(p);
     list_add(&lists[o], &p->page_link);
 }
-/* lab2 function3 2413460: PFN-aligned orders, including non-power-of-two arenas. */
+/* lab2 function3 2413456: PFN-aligned orders, including non-power-of-two arenas. */
 static void release_block(struct Page *p, unsigned o) {
     while (o < MAX_ORDER) {
         size_t ppn=page2ppn(p), partner=ppn ^ ((size_t)1 << o);
