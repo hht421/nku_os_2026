@@ -46,23 +46,27 @@
 
 工具名称表示使用的应用或终端 Agent，模型名称表示其底层模型。成员工具登记参考 Lab 1 报告；以下构建、固件和模拟器版本以本次 Lab 2 的实际运行记录为准。
 
-本轮编译、验收和 QEMU 源码调试由 AI 工具执行；2026-10-20 00:37，采集者在 macOS 原生终端运行脚本复跑并保存七张窗口截图。现有记录能够确认此次复跑与采集，三位成员各自独立复跑和交叉审核的情况仍需分别记录。报告中的提示词按实验要求整理，不作为历史逐字对话。
+本轮编译、验收和 QEMU 源码调试由 AI 工具执行；2026-10-20 00:37，采集者在 macOS 原生终端运行脚本复跑并保存七张窗口截图。
 
 ### 2.2 构建与运行环境
 
-宿主机为 macOS Apple Silicon，内核在 Docker 的 Linux ARM64 环境中交叉编译。普通运行使用课程工作区的 Compose `oslab` 服务，源码调试使用独立带符号的同版 QEMU 4.1.1，两者使用同一 OpenSBI 0.4 固件。
+小组成员使用两类宿主机环境，工具链版本保持一致：
 
-| 工具或配置 | 本次实际使用 |
-|---|---|
-| 项目服务 / 镜像 | `oslab` / `nku-oslab:ubuntu22.04-arm64` |
-| 调试环境 | `nku-oslab:qemu4.1.1-debug`，基于项目镜像增加开发依赖 |
-| Linux | `6.12.76-linuxkit`，aarch64，glibc 2.35 |
-| 交叉编译器 / Make / GDB | GCC 10.2.0 / 4.3 / 12.1 |
-| 普通运行及源码调试 QEMU | **4.1.1**，工具会核对真实版本 |
-| 固件 | QEMU 4.1.1 随附 OpenSBI **0.4** 源码构建 |
-| BIOS 输入 | `firmware/opensbi-v0.4-qemu-virt-fdt81f00000.bin` |
-| DTB 搬移地址 / 内核入口 | `0x81f00000` / `0x80200000` |
-| 默认 RAM / PMM | `128M` / `best-fit` |
+- **macOS Apple Silicon**：内核在 Docker 的 Linux ARM64 环境中交叉编译。普通运行使用课程工作区的 Compose `oslab` 服务，源码调试使用独立带符号的同版 QEMU 4.1.1，两者使用同一 OpenSBI 0.4 固件。
+- **Windows x64**：内核在 WSL2 的 Ubuntu 22.04（amd64）中交叉编译，不依赖 Docker；QEMU 4.1.1 使用仓库脚本 `tools/build_debug_qemu.sh` 从官方源码构建并经同一 SHA-256 校验，固件为仓库自带的同一份二进制。交叉编译器、Make、GDB 均为 Ubuntu 22.04 归档包，版本与 macOS 环境一致。
+
+| 工具或配置 | macOS | Windows |
+|---|---|---|
+| 宿主机 / 构建环境 | macOS Apple Silicon，Docker Linux ARM64 | Windows 11 x64（10.0.26200），WSL2 Ubuntu 22.04.5（amd64） |
+| 项目服务 / 镜像 | `oslab` / `nku-oslab:ubuntu22.04-arm64` | 不使用 Docker，直接在 WSL2 内构建 |
+| 调试环境 | `nku-oslab:qemu4.1.1-debug`，基于项目镜像增加开发依赖 | 同一脚本产物 `qemu-build/qemu-system-riscv64` |
+| Linux | `6.12.76-linuxkit`，aarch64，glibc 2.35 | `6.6.87.2-microsoft-standard-WSL2`，amd64，glibc 2.35 |
+| 交叉编译器 / Make / GDB | GCC 10.2.0 / 4.3 / 12.1 | GCC 10.2.0 / 4.3 / 12.1（相同版本） |
+| 普通运行及源码调试 QEMU | **4.1.1**，工具会核对真实版本 | **4.1.1**（官方源码构建，脚本校验归档摘要） |
+| 固件 | QEMU 4.1.1 随附 OpenSBI **0.4** 源码构建 | 仓库自带同一份 `opensbi-v0.4-qemu-virt-fdt81f00000.bin` |
+| BIOS 输入 | `firmware/opensbi-v0.4-qemu-virt-fdt81f00000.bin` | 同左 |
+| DTB 搬移地址 / 内核入口 | `0x81f00000` / `0x80200000` | 同左 |
+| 默认 RAM / PMM | `128M` / `best-fit` | 同左 |
 
 版本输出保留于本地，固件来源、许可证与重建方法见 [firmware/README.md](../code/lab2/firmware/README.md)。本轮提供的固件 SHA-256 为 `2737e0faff241cec624f24c806f72e124e7653b8c55a76a8f3321f91010e97f8`。固件横幅中的日期是构建时间，验证日期以本轮 CST 执行记录为准。
 
@@ -99,6 +103,19 @@ make grade
 python3 tools/mmu_trace.py \
   --qemu "$PWD/qemu-build/qemu-system-riscv64" \
   --source "$PWD/qemu-source" --output evidence/mmu-new
+```
+
+在 Windows 内（WSL2 Ubuntu 22.04）中，将仓库复制进 WSL 并修正脚本与 Makefile 的 CRLF 行尾后，按相同流程构建与验收：
+
+```bash
+wsl -d Ubuntu-22.04
+rsync -a --exclude .git /mnt/c/path/to/nku_os_2026/ ~/nku_os_2026/
+cd ~/nku_os_2026/code/lab2
+find . \( -name "*.sh" -o -name Makefile -o -name "*.mk" \) -exec sed -i "s/\r$//" {} +
+bash tools/build_debug_qemu.sh ~/qemu-source ~/qemu-build
+export QEMU=$HOME/qemu-build/qemu-system-riscv64
+make grade QEMU="$QEMU"
+make PMM=best-fit MEMORY=128M qemu QEMU="$QEMU"
 ```
 
 上述命令从 Lab 2 目录执行；源码调试脚本会重新构建内核并保存 GDB 命令和日志。报告保留七张原生终端截图；原始日志、结果 JSON 和历史对照另存于本地。
@@ -196,7 +213,7 @@ free_pages = (maxpa - free_begin) / PGSIZE
 
 OpenSBI 入口参数为 a0=hart ID、a1=DTB PA；启动映射允许内核访问交接的 DTB。下列常量和字段摘自当前工程：
 
-```c
+​```c
 #define PGSIZE          4096
 #define PGSHIFT         12
 #define DRAM_BASE          0x80000000
@@ -217,7 +234,7 @@ extern struct Page *pages;
 extern size_t npage;
 extern const size_t nbase;
 extern uint64_t va_pa_offset;
-```
+​```
 
 `npage` 为管理上界的绝对 PFN，描述符数量为 `npage-nbase`，`pages[PFN-nbase]` 对应该物理页。可使用 `PADDR`、`pa2page`、`ROUNDUP`、`ROUNDDOWN`、页面状态宏、`panic`、`cprintf`、链接符号 `end`，以及当前管理器的 `init_memmap`；这些依赖不属于本题要重写的接口。
 
@@ -227,7 +244,7 @@ extern uint64_t va_pa_offset;
 
 必须实现或保持下列接口及布局结构，签名以头文件为准：
 
-```c
+​```c
 int dtb_parse_memory(const void *blob, size_t limit, uintptr_t *base, uintptr_t *size);
 void dtb_init(uintptr_t hartid, uintptr_t dtb_pa);
 uintptr_t get_memory_base(void);
@@ -241,7 +258,7 @@ int pmm_compute_layout(uintptr_t base, uintptr_t size, uintptr_t kernel_end,
                        uintptr_t limit, size_t descriptor_size, struct pmm_layout *out);
 
 static void page_init(void);
-```
+​```
 
 辅助函数仅服务于解析、边界校验或初始化，不改变 PMM 对外接口。
 
@@ -336,12 +353,12 @@ static void page_init(void);
 
 当前设备树公开接口取自 dtb.h：
 
-```c
+​```c
 int dtb_parse_memory(const void *blob, size_t limit, uintptr_t *base, uintptr_t *size);
 void dtb_init(uintptr_t hartid, uintptr_t dtb_pa);
 uintptr_t get_memory_base(void);
 uintptr_t get_memory_size(void);
-```
+​```
 
 当前内核针对 QEMU virt 的单个 DRAM bank，设备树物理指针由 OpenSBI 交接；当前布局会扣除固件、内核和描述符占用。UEFI 内存映射和 x86 E820 是对照机制，不是此 RISC-V 工程已实现的接口。
 
@@ -408,7 +425,7 @@ First-Fit 可以改进：next-fit 避免每次从头扫描；按大小分桶或�
 
 工作目录为 `code/lab2/`，报告路径相对仓库根目录。以下为 `memlayout.h` 中实际字段的摘录，仅去掉注释：
 
-```c
+​```c
 struct Page {
     int ref;
     uint64_t flags;
@@ -420,16 +437,16 @@ typedef struct {
     list_entry_t free_list;
     unsigned int nr_free;
 } free_area_t;
-```
+​```
 
 `PG_reserved` 表示保留页；`PG_property` 表示空闲块头，`property` 记录块长。链表地址有序，`nr_free` 统计空闲页。需阅读的现有接口为：
 
-```c
+​```c
 static void default_init(void);
 static void default_init_memmap(struct Page *base, size_t n);
 static struct Page *default_alloc_pages(size_t n);
 static void default_free_pages(struct Page *base, size_t n);
-```
+​```
 
 [GUARANTEE]
 
@@ -511,7 +528,7 @@ Best-Fit 使用模块私有 `best_fit_area`，避免与 First-Fit 的全局状�
 
 以下结构和声明取自当前 `pmm.h`、`memlayout.h`，仅去注释：
 
-```c
+​```c
 struct pmm_manager {
     const char *name;
     void (*init)(
@@ -545,9 +562,9 @@ extern struct Page *pages;
 extern size_t npage;
 extern const size_t nbase;
 extern uint64_t va_pa_offset;
-```
+​```
 
-```c
+​```c
 #define PG_reserved                 0
 #define PG_property                 1
 #define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
@@ -558,7 +575,7 @@ extern uint64_t va_pa_offset;
 #define PageProperty(page)          test_bit(PG_property, &((page)->flags))
 #define le2page(le, member)                 \
     to_struct((le), struct Page, member)
-```
+​```
 
 可使用 `list.h` 的双向链表操作和 `set_page_ref`。PMM 包装层负责单核中断保护；管理函数不更改公开 ABI。
 
@@ -566,7 +583,7 @@ extern uint64_t va_pa_offset;
 
 [GUARANTEE]
 
-```c
+​```c
 static void best_fit_init(void);
 static void best_fit_init_memmap(struct Page *base, size_t n);
 static struct Page *best_fit_alloc_pages(size_t n);
@@ -574,7 +591,7 @@ static void best_fit_free_pages(struct Page *base, size_t n);
 static size_t best_fit_nr_free_pages(void);
 static void init_pmm_manager(void);
 extern const struct pmm_manager best_fit_pmm_manager;
-```
+​```
 
 注册对象必须填齐 pmm_manager 的六个回调；check 指向保留的 best_fit_check。
 
@@ -687,7 +704,7 @@ static void buddy_check(void);
 
 以下结构和声明取自当前 `pmm.h`、`memlayout.h`，仅去注释：
 
-```c
+​```c
 struct pmm_manager {
     const char *name;
     void (*init)(
@@ -721,9 +738,9 @@ extern struct Page *pages;
 extern size_t npage;
 extern const size_t nbase;
 extern uint64_t va_pa_offset;
-```
+​```
 
-```c
+​```c
 #define PG_reserved                 0
 #define PG_property                 1
 #define SetPageReserved(page)       set_bit(PG_reserved, &((page)->flags))
@@ -734,7 +751,7 @@ extern uint64_t va_pa_offset;
 #define PageProperty(page)          test_bit(PG_property, &((page)->flags))
 #define le2page(le, member)                 \
     to_struct((le), struct Page, member)
-```
+​```
 
 可使用 `list.h` 的双向链表操作和 `set_page_ref`。PMM 包装层负责单核中断保护；管理函数不更改公开 ABI。
 
@@ -742,7 +759,7 @@ extern uint64_t va_pa_offset;
 
 [GUARANTEE]
 
-```c
+​```c
 static void buddy_init(void);
 static void buddy_init_memmap(struct Page *base, size_t n);
 static struct Page *buddy_alloc_pages(size_t n);
@@ -750,7 +767,7 @@ static void buddy_free_pages(struct Page *base, size_t n);
 static size_t buddy_nr_free_pages(void);
 static void buddy_check(void);
 extern const struct pmm_manager buddy_pmm_manager;
-```
+​```
 
 注册对象应填齐所有回调；接入处复用既有 init_pmm_manager(void)，使显式 PMM=buddy 选中 Buddy。
 
@@ -826,14 +843,14 @@ extern const struct pmm_manager buddy_pmm_manager;
 
 现有宿主适配层为 `tests/host_include/pmm.h`，有真实的 Page/PMM 声明和 host_ram 地址转换。测试中的固定环境摘录如下：
 
-```c
+​```c
 #define NPAGES 512
 static struct Page descriptors[NPAGES];
 struct Page *pages=descriptors;
 size_t npage=0x80000+NPAGES;
 const size_t nbase=0x80000;
 _Alignas(4096) unsigned char host_ram[NPAGES*PGSIZE];
-```
+​```
 
 `reset(const struct pmm_manager *m)` 初始化受控页区，alloc_pages/free_pages/nr_free_pages 调用被测管理器；测试模型必须独立于其空闲链表。宿主断言由 libc abort，内核断言使用现有 panic。
 
@@ -841,12 +858,12 @@ Buddy 已实现上一条规定的 PMM 接口，MAX_ORDER=15，只能按原请求
 
 [GUARANTEE]
 
-```c
+​```c
 static void random_pages(int buddy);
 static void original_checks(void);
 int main(int argc, char **argv);
 static void buddy_check(void);
-```
+​```
 
 `random_pages(1)` 覆盖 Buddy；保留 `random_pages(0)` 对 Best-Fit 的既有覆盖。脚本使用现有 `host_tests()`、`qemu_tests()`、`main()` 和 `make grade` 接入，不另建不被执行的测试文件。
 
@@ -937,7 +954,7 @@ static void *allocate(size_t size);
 
 下层由 pmm.h 提供如下接口：
 
-```c
+​```c
 struct Page *alloc_pages(size_t n);
 void free_pages(struct Page *base, size_t n);
 size_t nr_free_pages(void);
@@ -945,7 +962,7 @@ extern struct Page *pages;
 extern size_t npage;
 extern const size_t nbase;
 extern uint64_t va_pa_offset;
-```
+​```
 
 可使用 `page2kva`、`list.h`、memset、ROUNDUP/ROUNDDOWN 和单核中断保护宏。页大小由工程 PGSIZE 定义。Best-Fit 精确分配页数，Buddy 可能向上舍入，回收必须传回原请求。上层尺寸类为 16 至 2048 字节的八个幂次大小，返回地址按 16 字节对齐。
 
@@ -953,11 +970,11 @@ extern uint64_t va_pa_offset;
 
 公开接口与当前 slub.h 一致：
 
-```c
+​```c
 void *slub_alloc(size_t size);
 void slub_free(void *ptr);
 void slub_check(void);
-```
+​```
 
 允许新增模块内 static 辅助函数、尺寸类表、页头和位图，不要求预设的内部函数名称。
 
@@ -1013,34 +1030,34 @@ void slub_check(void);
 
 现有宿主适配层为 `tests/host_include/pmm.h`，有真实的 Page/PMM 声明和 host_ram 地址转换。测试中的固定环境摘录如下：
 
-```c
+​```c
 #define NPAGES 512
 static struct Page descriptors[NPAGES];
 struct Page *pages=descriptors;
 size_t npage=0x80000+NPAGES;
 const size_t nbase=0x80000;
 _Alignas(4096) unsigned char host_ram[NPAGES*PGSIZE];
-```
+​```
 
 `reset(const struct pmm_manager *m)` 初始化受控页区，alloc_pages/free_pages/nr_free_pages 调用被测管理器；测试模型必须独立于其空闲链表。宿主断言由 libc abort，内核断言使用现有 panic。
 
 被测公开接口为：
 
-```c
+​```c
 void *slub_alloc(size_t size);
 void slub_free(void *ptr);
 void slub_check(void);
-```
+​```
 
 `objects(0)` 使用 Best-Fit，`objects(1)` 使用 Buddy；主入口已有 slub-double、slub-interior 负例协议。对象大小上限、尺寸类和对齐约束与上一条实现规格一致。
 
 [GUARANTEE]
 
-```c
+​```c
 static void objects(int buddy);
 int main(int argc, char **argv);
 void slub_check(void);
-```
+​```
 
 保留 tests/test_allocators.c 的其他入口和 tools/test_lab2.py 的 host_tests() 调用。允许私有测试辅助函数，不新增公开分配接口。
 
@@ -1157,10 +1174,10 @@ Bare 对照选取内核第一条指令的真实取指，访问类型为 MMU_INST
 
 现有 probe 变量和接口摘录为：
 
-```c
+​```c
 volatile uintptr_t mmu_probe_value __attribute__((aligned(4096))) = 0x2413460;
 uintptr_t __attribute__((noinline)) mmu_read_probe(void);
-```
+​```
 
 `pmm.h` 已有 `flush_tlb()`，执行带 memory clobber 的 sfence.vma。启动页表提供高地址 1 GiB 叶子映射。调试链涉及当前 QEMU 源码的 load_helper、riscv_cpu_tlb_fill、get_physical_address、tlb_set_page；真实读取类型为 MMU_DATA_LOAD，Bare 对照选 MMU_INST_FETCH。可用 gdb 和 nm；每轮须先按当前 Makefile 构建 bin/kernel，再读取其符号，现有 mmu_trace.py 会先执行构建。QEMU 源码及带符号可执行文件仍保留。
 
@@ -1168,23 +1185,23 @@ QEMU 4.1.1 的 get_physical_address 没有 is_debug 参数。应断言实际调�
 
 [GUARANTEE]
 
-```c
+​```c
 uintptr_t mmu_read_probe(void);
-```
+​```
 
 保留现有 Python 函数签名：
 
-```python
+​```python
 def run(name, args, timeout=90):
-```
+​```
 
 容器中保留以下入口，运行前按 MMU 文档挂载 toolchains；可用 --bios 指定项目固件、--output 指定新的输出目录：
 
-```bash
+​```bash
 python3 tools/mmu_trace.py \
   --qemu /workspace/toolchains/qemu-4.1.1/build-lab2/qemu-system-riscv64 \
   --source /workspace/toolchains/qemu-4.1.1
-```
+​```
 
 输出 mmu-sv39.gdb、mmu-bare.gdb、两份原始日志和 mmu-results.json。
 
@@ -1273,11 +1290,11 @@ Compose 服务 oslab 使用 QEMU 4.1.1；项目 Makefile 的 BIOS 默认指向 f
 
 保留现有 Bash 函数及参数协议：
 
-```bash
+​```bash
 run_test()      # name 后接实际命令及参数
 show_output()   # name、title、lines
 capture_window() # 输出图片名，不含扩展名
-```
+​```
 
 交付带时间记录的命令、退出码、完整日志和七张原生终端 PNG。固件附带未修改的上游许可证、来源说明和 SHA-256；主图与原件保持逐字节一致。保留 run_test、show_output、capture_window 的参数协议，允许新增私有显示辅助函数。
 
