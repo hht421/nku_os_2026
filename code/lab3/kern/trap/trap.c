@@ -6,6 +6,7 @@
 #include <memlayout.h>
 #include <mmu.h>
 #include <riscv.h>
+#include <sbi.h>
 #include <stdio.h>
 #include <trap.h>
 
@@ -80,7 +81,76 @@ void print_regs(struct pushregs *gpr) {
     cprintf("  t6       0x%08x\n", gpr->t6);
 }
 
-//lab3 function2 YOUR CODE
+//lab3 function2 2413456
+/* interrupt_handler 与 exception_handler 的实现（本占位处为 lab3 function2）
+ * interrupt_handler（时钟中断/软中断/外部中断）：2413456
+ * exception_handler（非法指令/断点/其他异常兜底）：2413460 */
+
+// 累计输出 TICK_NUM 统计信息的次数达到 SHUTDOWN_AFTER 后调用 sbi_shutdown() 关机
+#define SHUTDOWN_AFTER 10
+
+static size_t shutdown_count = 0;
+
+/* interrupt_handler - 处理各类中断；scause 最高位为 1 时由 trap_dispatch 进入这里 */
+void interrupt_handler(struct trapframe *tf) {
+    // 清除最高位（中断标志）得到具体的中断编号
+    uintptr_t code = (uintptr_t)tf->cause & ~((uintptr_t)1 << 63);
+    switch (code) {
+    case IRQ_S_TIMER:
+        // 时钟中断：必须重新设置下一次时钟事件，否则只能收到一次中断
+        clock_set_next_event();
+        ticks++;
+        if (ticks % TICK_NUM == 0) {
+            print_ticks();
+            shutdown_count++;
+            if (shutdown_count >= SHUTDOWN_AFTER) {
+                sbi_shutdown();
+            }
+        }
+        break;
+    case IRQ_S_SOFT:
+        cprintf("Supervisor software interrupt\n");
+        break;
+    case IRQ_S_EXT:
+        cprintf("Supervisor external interrupt\n");
+        break;
+    default:
+        // 无法识别的中断：输出提示并用 print_trapframe 辅助调试
+        cprintf("Unknown interrupt: cause %d\n", code);
+        print_trapframe(tf);
+        break;
+    }
+}
+
+/* exception_handler - 处理各类异常；scause 最高位为 0 时由 trap_dispatch 进入这里 */
+
+/* 读取 epc 处指令编码的低两位判断指令长度：
+ * 0b11 为 32 位标准指令（4 字节），否则为 16 位压缩指令（2 字节，RVC 扩展）。
+ * 例如 ebreak 在开启压缩扩展后会被汇编为 2 字节的 c.ebreak，而自定义非法指令
+ * .word 0x0000007b 是 4 字节——不能对所有异常假定同一偏移量。 */
+static uintptr_t instruction_length(uintptr_t pc) {
+    uint16_t inst = *(volatile uint16_t *)pc;
+    return (inst & 0x3) == 0x3 ? 4 : 2;
+}
+
+void exception_handler(struct trapframe *tf) {
+    switch (tf->cause) {
+    case CAUSE_ILLEGAL_INSTRUCTION:
+        // 非法指令：按实际编码长度前移返回地址，避免再次触发同一异常形成死循环
+        cprintf("Illegal instruction at 0x%08x\n", tf->epc);
+        tf->epc += instruction_length(tf->epc);
+        break;
+    case CAUSE_BREAKPOINT:
+        // 断点异常：同样按实际编码长度前移（c.ebreak 为 2 字节）
+        cprintf("Breakpoint at 0x%08x\n", tf->epc);
+        tf->epc += instruction_length(tf->epc);
+        break;
+    default:
+        // 实验未要求具体恢复逻辑的异常：print_trapframe 兜底输出
+        print_trapframe(tf);
+        break;
+    }
+}
 
 
 static inline void trap_dispatch(struct trapframe *tf) {
