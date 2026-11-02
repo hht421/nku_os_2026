@@ -35,7 +35,8 @@ static void check_alloc_page(void);
 
 // init_pmm_manager - initialize a pmm_manager instance
 static void init_pmm_manager(void) {
-    pmm_manager = &default_pmm_manager;
+    //lab2 function2 2413421: 接入实验二实现的 Best-Fit 分配器作为默认管理器
+    pmm_manager = &best_fit_pmm_manager;
     cprintf("memory management: %s\n", pmm_manager->name);
     pmm_manager->init();
 }
@@ -82,6 +83,40 @@ size_t nr_free_pages(void) {
 }
 
 //lab2 请补充你在lab2中的代码
+/* lab2 function1 2413421: 由 DTB 给出的内存信息推导物理内存布局（自实验二移植）。
+ * 描述符数组紧邻内核镜像之后放置，剩余的整页空间交给 pmm_manager 管理。 */
+static void page_init(void) {
+    va_pa_offset = PHYSICAL_MEMORY_OFFSET;
+    uint64_t mem_base = get_memory_base();
+    uint64_t mem_size = get_memory_size();
+    assert(mem_base == DRAM_BASE);
+    uintptr_t maxpa = mem_base + mem_size;
+    cprintf("physical memory map:\n  memory: 0x%016lx, [0x%016lx, 0x%016lx].\n",
+            mem_size, mem_base, mem_base + mem_size - 1);
+
+    extern char end[];  // 内核镜像的结尾（bss 段之后）
+    uintptr_t descriptors_pa = ROUNDUP(PADDR(end), PGSIZE);
+    npage = maxpa / PGSIZE;
+    size_t descriptors_count = npage - nbase;  // 管理范围从 DRAM_BASE 开始
+
+    // 描述符数组必须完整放进可用内存，且其后至少要有空闲空间
+    assert(descriptors_pa + descriptors_count * sizeof(struct Page) <= maxpa);
+    pages = (struct Page *)(descriptors_pa + va_pa_offset);
+    for (size_t i = 0; i < descriptors_count; i++) {
+        pages[i].flags = 0; SetPageReserved(pages + i);
+        pages[i].property = 0; set_page_ref(pages + i, 0);
+        list_init(&pages[i].page_link);
+    }
+
+    uintptr_t free_begin_pa =
+        ROUNDUP(descriptors_pa + descriptors_count * sizeof(struct Page), PGSIZE);
+    size_t free_pages_count = (maxpa - free_begin_pa) / PGSIZE;
+    cprintf("managed end: 0x%016lx; descriptors: %lu; free start: 0x%016lx; free pages: %lu\n",
+            maxpa, descriptors_count, free_begin_pa, free_pages_count);
+    if (free_pages_count) {
+        init_memmap(pa2page(free_begin_pa), free_pages_count);
+    }
+}
 
 /* pmm_init - initialize the physical memory management */
 void pmm_init(void) {

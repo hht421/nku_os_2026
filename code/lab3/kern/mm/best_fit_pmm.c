@@ -5,6 +5,85 @@
 #include <stdio.h>
 
 //lab2 请补充你在lab2中的代码
+/* lab2 function2-2 2413421: 地址有序空闲链 + 完整 Best-Fit 扫描（自实验二移植）。
+ * 基本思路：空闲块按物理地址升序维护；分配时整表扫描取满足 n 页请求中
+ * property 最小的块（最佳适配），剩余部分拆成新块留在原位；
+ * 释放时按地址插回并与前/后块合并。 */
+static free_area_t best_fit_area;
+#define free_list (best_fit_area.free_list)
+#define nr_free (best_fit_area.nr_free)
+
+static void best_fit_init(void) { list_init(&free_list); nr_free = 0; }
+
+static void insert_and_merge(struct Page *base) {
+    list_entry_t *le = list_next(&free_list);
+    while (le != &free_list && le2page(le, page_link) < base) le = list_next(le);
+    list_add_before(le, &base->page_link);
+    le = list_prev(&base->page_link);
+    if (le != &free_list) {
+        struct Page *prev = le2page(le, page_link);
+        assert(prev + prev->property <= base);
+        if (prev + prev->property == base) {
+            prev->property += base->property;
+            ClearPageProperty(base); base->property = 0;
+            list_del(&base->page_link); base = prev;
+        }
+    }
+    le = list_next(&base->page_link);
+    if (le != &free_list) {
+        struct Page *next = le2page(le, page_link);
+        assert(base + base->property <= next);
+        if (base + base->property == next) {
+            base->property += next->property;
+            ClearPageProperty(next); next->property = 0;
+            list_del(&next->page_link);
+        }
+    }
+}
+
+static void best_fit_init_memmap(struct Page *base, size_t n) {
+    assert(n > 0);
+    for (struct Page *p = base; p < base+n; p++) {
+        assert(PageReserved(p));
+        p->flags = p->property = 0; set_page_ref(p, 0); list_init(&p->page_link);
+    }
+    base->property = n; SetPageProperty(base); nr_free += n;
+    insert_and_merge(base);
+}
+
+static struct Page *best_fit_alloc_pages(size_t n) {
+    assert(n > 0);
+    if (n > nr_free) return NULL;
+    struct Page *best = NULL;
+    list_entry_t *le = &free_list;
+    while ((le = list_next(le)) != &free_list) {
+        struct Page *p = le2page(le, page_link);
+        if (p->property >= n && (!best || p->property < best->property)) best = p;
+    }
+    if (!best) return NULL;
+    size_t old_size = best->property;
+    list_entry_t *prev = list_prev(&best->page_link);
+    list_del(&best->page_link);
+    if (old_size > n) {
+        struct Page *rest = best+n;
+        rest->property = old_size-n; SetPageProperty(rest);
+        list_add(prev, &rest->page_link);
+    }
+    nr_free -= n; ClearPageProperty(best); best->property = 0;
+    return best;
+}
+
+static void best_fit_free_pages(struct Page *base, size_t n) {
+    assert(n > 0);
+    for (struct Page *p = base; p < base+n; p++) {
+        assert(!PageReserved(p) && !PageProperty(p));
+        p->flags = p->property = 0; set_page_ref(p, 0);
+    }
+    base->property = n; SetPageProperty(base); nr_free += n;
+    insert_and_merge(base);
+}
+
+static size_t best_fit_nr_free_pages(void) { return nr_free; }
 
 static void
 basic_check(void) {
@@ -140,3 +219,14 @@ best_fit_check(void) {
 }
 
 
+
+/* lab2 function2-2 2413421: Best-Fit 管理器接入（自实验二移植） */
+const struct pmm_manager best_fit_pmm_manager = {
+    .name = "best_fit_pmm_manager",
+    .init = best_fit_init,
+    .init_memmap = best_fit_init_memmap,
+    .alloc_pages = best_fit_alloc_pages,
+    .free_pages = best_fit_free_pages,
+    .nr_free_pages = best_fit_nr_free_pages,
+    .check = best_fit_check,
+};
