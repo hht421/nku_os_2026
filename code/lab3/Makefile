@@ -32,6 +32,10 @@ GDB		:= $(GCCPREFIX)gdb
 CC		:= $(GCCPREFIX)gcc
 CFLAGS  := -mcmodel=medany -std=gnu99 -Wno-unused -Werror 
 CFLAGS	+= -fno-builtin -Wall -O2 -nostdinc $(DEFS)
+# 环境适配（2413421）：Ubuntu 的 riscv64-linux-gnu-gcc 默认 PIE，
+# 会使 entry.S 中的 la 展开为 GOT 间接寻址，在开启页表前的裸机阶段取址错误。
+# 关闭 PIE/PIC 后 la 恢复为标准 auipc+addi PC 相对寻址。
+CFLAGS	+= -fno-pie -fno-pic
 CFLAGS	+= -fno-stack-protector -ffunction-sections -fdata-sections
 CFLAGS	+= -g
 CFLAGS2 = $(CFLAGS) -D ucore_test
