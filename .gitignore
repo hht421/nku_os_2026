@@ -5,3 +5,6 @@ bin/
 # QEMU 源码调试的本地构建
 qemu-source/
 qemu-build/
+
+# AI 会话工作目录
+.zcode/
