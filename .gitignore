@@ -1,0 +1,13 @@
+.DS_Store
+**/obj/
+**/bin/
+**/__pycache__/
+*.pyc
+**/.gdb.in
+**/.qemu.out
+**/.*.log
+.vscode/
+.idea/
+.zcode/
+.codex/
+.claude/
